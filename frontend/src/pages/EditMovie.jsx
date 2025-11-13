@@ -3,71 +3,79 @@ import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/api";
 import toast from "react-hot-toast";
 
-export default function EditPost() {
+export default function EditMovie() {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    name: "",
-    description: "",
-    imageUrl: "",
+    title: "",
+    genre: "",
+    rating: "",
+    posterUrl: "",
   });
 
-  const [imageMode, setImageMode] = useState("link"); // 'link' hoặc 'file'
+  const [imageMode, setImageMode] = useState("link");
   const [preview, setPreview] = useState("");
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // ✅ Fetch post data
+  // Load movie details
   useEffect(() => {
-    const fetchPost = async () => {
+    const fetchMovie = async () => {
       try {
-        const res = await api.get(`/posts/${id}`);
+        const res = await api.get(`/movies/${id}`);
+        const m = res.data;
         setForm({
-          name: res.data.name,
-          description: res.data.description,
-          imageUrl: res.data.imageUrl || "",
+          title: m.title,
+          genre: m.genre || "",
+          rating: m.rating || "",
+          posterUrl: m.posterUrl || "",
         });
-        setPreview(res.data.imageUrl);
+        setPreview(m.posterUrl);
       } catch {
-        toast.error("Failed to load post details");
+        toast.error("Failed to load movie details");
       } finally {
         setLoading(false);
       }
     };
-    fetchPost();
+    fetchMovie();
   }, [id]);
 
-  // ✅ Preview file upload
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) setPreview(URL.createObjectURL(file));
   };
 
-  // ✅ Handle submit
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!form.name || !form.description) {
-      toast.error("Name and Description are required");
+    if (!form.title) {
+      toast.error("Title is required");
+      return;
+    }
+
+    if (form.rating && (form.rating < 1 || form.rating > 5)) {
+      toast.error("Rating must be between 1 and 5");
       return;
     }
 
     const data = new FormData();
-    data.append("name", form.name);
-    data.append("description", form.description);
+    data.append("title", form.title);
+    data.append("genre", form.genre);
+    data.append("rating", form.rating);
 
-    if (imageMode === "link" && form.imageUrl)
-      data.append("imageUrl", form.imageUrl);
-    if (imageMode === "file" && e.target.imageFile.files[0])
-      data.append("imageFile", e.target.imageFile.files[0]);
+    if (imageMode === "link" && form.posterUrl)
+      data.append("posterUrl", form.posterUrl);
+
+    if (imageMode === "file" && e.target.posterFile.files[0])
+      data.append("posterFile", e.target.posterFile.files[0]);
 
     try {
       setIsSubmitting(true);
-      await api.put(`/posts/${id}`, data, {
+      await api.put(`/movies/${id}`, data, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      toast.success("Post updated successfully!");
+      toast.success("Movie updated successfully!");
       navigate("/");
     } catch {
       toast.error("Update failed");
@@ -77,38 +85,50 @@ export default function EditPost() {
   };
 
   if (loading)
-    return <p className="text-center text-gray-500 mt-8">Loading post...</p>;
+    return <p className="text-center text-gray-500 mt-8">Loading movie...</p>;
 
   return (
     <form
       onSubmit={handleSubmit}
       className="bg-white shadow-md p-6 rounded-lg max-w-2xl mx-auto mt-6"
     >
-      <h2 className="text-2xl font-semibold mb-4 text-primary">✏️ Edit Post</h2>
+      <h2 className="text-2xl font-semibold mb-4 text-primary">✏️ Edit Movie</h2>
 
-      {/* --- Name --- */}
+      {/* Title */}
       <input
         type="text"
-        placeholder="Post Name"
-        value={form.name}
-        onChange={(e) => setForm({ ...form, name: e.target.value })}
+        placeholder="Movie title *"
+        value={form.title}
+        onChange={(e) => setForm({ ...form, title: e.target.value })}
         className="border p-2 w-full rounded mb-3"
         disabled={isSubmitting}
       />
 
-      {/* --- Description --- */}
-      <textarea
-        placeholder="Description"
-        value={form.description}
-        onChange={(e) => setForm({ ...form, description: e.target.value })}
+      {/* Genre */}
+      <input
+        type="text"
+        placeholder="Genre (optional)"
+        value={form.genre}
+        onChange={(e) => setForm({ ...form, genre: e.target.value })}
         className="border p-2 w-full rounded mb-3"
-        rows="4"
         disabled={isSubmitting}
       />
 
-      {/* --- Radio chọn loại ảnh --- */}
+      {/* Rating */}
+      <input
+        type="number"
+        min="1"
+        max="5"
+        placeholder="Rating (1–5)"
+        value={form.rating}
+        onChange={(e) => setForm({ ...form, rating: e.target.value })}
+        className="border p-2 w-full rounded mb-3"
+        disabled={isSubmitting}
+      />
+
+      {/* Poster */}
       <div className="mb-4">
-        <p className="font-medium text-gray-700 mb-2">Image Source:</p>
+        <p className="font-medium text-gray-700 mb-2">Poster Source:</p>
         <div className="flex gap-6">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -118,9 +138,8 @@ export default function EditPost() {
               checked={imageMode === "link"}
               onChange={() => {
                 setImageMode("link");
-                setPreview(form.imageUrl);
+                setPreview(form.posterUrl);
               }}
-              disabled={isSubmitting}
               className="accent-blue-600"
             />
             🔗 Link
@@ -136,7 +155,6 @@ export default function EditPost() {
                 setImageMode("file");
                 setPreview("");
               }}
-              disabled={isSubmitting}
               className="accent-blue-600"
             />
             📁 Upload File
@@ -144,14 +162,13 @@ export default function EditPost() {
         </div>
       </div>
 
-      {/* --- Image input --- */}
       {imageMode === "link" ? (
         <input
           type="text"
-          placeholder="Paste image link..."
-          value={form.imageUrl}
+          placeholder="Paste poster link..."
+          value={form.posterUrl}
           onChange={(e) => {
-            setForm({ ...form, imageUrl: e.target.value });
+            setForm({ ...form, posterUrl: e.target.value });
             setPreview(e.target.value);
           }}
           className="border p-2 w-full rounded mb-3"
@@ -160,7 +177,7 @@ export default function EditPost() {
       ) : (
         <input
           type="file"
-          name="imageFile"
+          name="posterFile"
           accept="image/*"
           onChange={handleFileChange}
           className="border p-2 w-full rounded mb-3"
@@ -168,24 +185,17 @@ export default function EditPost() {
         />
       )}
 
-      {/* --- Preview --- */}
       <img
-        src={preview || "https://placehold.co/600x400?text=No+Image+Available"}
+        src={preview || "https://placehold.co/300x450?text=No+Poster"}
         alt="Preview"
-        className="w-full h-56 object-cover rounded mb-3 border"
+        className="w-full h-72 object-cover rounded mb-3 border"
       />
 
-      {/* --- Buttons --- */}
-      <div className="flex justify-between">
+      <div className="flex justify-between mt-4">
         <button
           type="button"
           onClick={() => navigate("/")}
-          className={`px-4 py-2 rounded transition ${
-            isSubmitting
-              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-              : "bg-gray-300 text-gray-800 hover:bg-gray-400"
-          }`}
-          disabled={isSubmitting}
+          className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400"
         >
           Cancel
         </button>
@@ -193,11 +203,7 @@ export default function EditPost() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className={`px-4 py-2 rounded text-white transition ${
-            isSubmitting
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-blue-600 hover:bg-blue-700"
-          }`}
+          className="px-4 py-2 rounded text-white bg-blue-600 hover:bg-blue-700"
         >
           {isSubmitting ? "Updating..." : "Save Changes"}
         </button>

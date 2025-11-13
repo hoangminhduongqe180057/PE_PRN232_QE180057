@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { FileText, PlusCircle } from "lucide-react";
+import { Film, PlusCircle } from "lucide-react";
 
 export default function Navbar() {
   const location = useLocation();
@@ -16,7 +16,8 @@ export default function Navbar() {
           to="/"
           className="flex items-center gap-2 text-2xl font-bold text-blue-600 hover:text-blue-700 transition"
         >
-          📝 <span>Post Manager</span>
+          <Film size={26} />
+          <span>Movie Watchlist</span>
         </Link>
 
         {/* Menu */}
@@ -27,8 +28,7 @@ export default function Navbar() {
               "/"
             )}`}
           >
-            <FileText size={18} />
-            All Posts
+            All Movies
           </Link>
 
           <Link
@@ -38,7 +38,7 @@ export default function Navbar() {
             )}`}
           >
             <PlusCircle size={18} />
-            Create
+            Add Movie
           </Link>
         </div>
       </div>

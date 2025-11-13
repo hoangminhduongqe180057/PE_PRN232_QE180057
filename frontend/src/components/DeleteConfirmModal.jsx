@@ -3,7 +3,13 @@ import { useState } from "react";
 import { api } from "../api/api";
 import toast from "react-hot-toast";
 
-export default function DeleteConfirmModal({ show, onClose, postId, postName, onDeleted }) {
+export default function DeleteConfirmModal({
+  show,
+  onClose,
+  movieId,
+  movieTitle,
+  onDeleted,
+}) {
   const [isDeleting, setIsDeleting] = useState(false);
 
   if (!show) return null;
@@ -11,12 +17,12 @@ export default function DeleteConfirmModal({ show, onClose, postId, postName, on
   const handleDelete = async () => {
     try {
       setIsDeleting(true);
-      await api.delete(`/posts/${postId}`);
-      toast.success(`"${postName}" deleted successfully!`);
-      onDeleted?.(); // gọi callback refresh list
+      await api.delete(`/movies/${movieId}`);
+      toast.success(`"${movieTitle}" deleted successfully!`);
+      onDeleted?.();
       onClose();
     } catch {
-      toast.error("Failed to delete post!");
+      toast.error("Failed to delete movie!");
     } finally {
       setIsDeleting(false);
     }
@@ -40,7 +46,8 @@ export default function DeleteConfirmModal({ show, onClose, postId, postName, on
 
         <p className="text-gray-600 mb-5">
           Are you sure you want to delete{" "}
-          <span className="font-semibold text-red-600">"{postName}"</span>?
+          <span className="font-semibold text-red-600">"{movieTitle}"</span> from
+          your list?
         </p>
 
         <div className="flex justify-center gap-3">

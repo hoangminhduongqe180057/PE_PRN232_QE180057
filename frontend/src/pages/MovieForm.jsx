@@ -3,46 +3,59 @@ import { api } from "../api/api";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
-export default function PostForm() {
-  const [form, setForm] = useState({ name: "", description: "", imageUrl: "" });
-  const [imageMode, setImageMode] = useState("link"); // 'link' | 'file'
+export default function MovieForm() {
+  console.log("MovieForm mounted!");
+
+  const [form, setForm] = useState({
+    title: "",
+    genre: "",
+    rating: "",
+    posterUrl: "",
+  });
+
+  const [imageMode, setImageMode] = useState("link");
   const [preview, setPreview] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  // ✅ Preview khi chọn file
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) setPreview(URL.createObjectURL(file));
   };
 
-  // ✅ Submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name || !form.description) {
-      toast.error("Name & Description are required!");
+
+    if (!form.title) {
+      toast.error("Title is required!");
+      return;
+    }
+
+    if (form.rating && (form.rating < 1 || form.rating > 5)) {
+      toast.error("Rating must be between 1 and 5");
       return;
     }
 
     const data = new FormData();
-    data.append("name", form.name);
-    data.append("description", form.description);
+    data.append("title", form.title);
+    if (form.genre) data.append("genre", form.genre);
+    if (form.rating) data.append("rating", form.rating);
 
-    // Gửi link hoặc file tuỳ mode
-    if (imageMode === "link" && form.imageUrl)
-      data.append("imageUrl", form.imageUrl);
-    if (imageMode === "file" && e.target.imageFile.files[0])
-      data.append("imageFile", e.target.imageFile.files[0]);
+    if (imageMode === "link" && form.posterUrl)
+      data.append("posterUrl", form.posterUrl);
+
+    if (imageMode === "file" && e.target.posterFile.files[0])
+      data.append("posterFile", e.target.posterFile.files[0]);
 
     try {
       setIsSubmitting(true);
-      await api.post("/posts", data, {
+      await api.post("/movies", data, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      toast.success("Post created successfully!");
+      toast.success("Movie added successfully!");
       navigate("/");
-    } catch (err) {
-      toast.error("Failed to create post!");
+    } catch {
+      toast.error("Failed to add movie!");
     } finally {
       setIsSubmitting(false);
     }
@@ -53,31 +66,43 @@ export default function PostForm() {
       onSubmit={handleSubmit}
       className="bg-white shadow-md p-6 rounded-lg max-w-2xl mx-auto mt-6"
     >
-      <h2 className="text-2xl font-semibold mb-4 text-primary">📝 Create Post</h2>
+      <h2 className="text-2xl font-semibold mb-4 text-primary">🎬 Add Movie</h2>
 
-      {/* --- Name --- */}
+      {/* Title */}
       <input
         type="text"
-        placeholder="Post Name"
-        value={form.name}
-        onChange={(e) => setForm({ ...form, name: e.target.value })}
+        placeholder="Movie title *"
+        value={form.title}
+        onChange={(e) => setForm({ ...form, title: e.target.value })}
         className="border p-2 w-full rounded mb-3"
         disabled={isSubmitting}
       />
 
-      {/* --- Description --- */}
-      <textarea
-        placeholder="Description"
-        value={form.description}
-        onChange={(e) => setForm({ ...form, description: e.target.value })}
+      {/* Genre */}
+      <input
+        type="text"
+        placeholder="Genre (optional)"
+        value={form.genre}
+        onChange={(e) => setForm({ ...form, genre: e.target.value })}
         className="border p-2 w-full rounded mb-3"
-        rows="4"
         disabled={isSubmitting}
       />
 
-      {/* --- Radio chọn loại ảnh --- */}
+      {/* Rating */}
+      <input
+        type="number"
+        min="1"
+        max="5"
+        placeholder="Rating 1–5 (optional)"
+        value={form.rating}
+        onChange={(e) => setForm({ ...form, rating: e.target.value })}
+        className="border p-2 w-full rounded mb-3"
+        disabled={isSubmitting}
+      />
+
+      {/* Poster type */}
       <div className="mb-4">
-        <p className="font-medium text-gray-700 mb-2">Image Source:</p>
+        <p className="font-medium text-gray-700 mb-2">Poster Source:</p>
         <div className="flex gap-6">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -87,9 +112,8 @@ export default function PostForm() {
               checked={imageMode === "link"}
               onChange={() => {
                 setImageMode("link");
-                setPreview(form.imageUrl);
+                setPreview(form.posterUrl);
               }}
-              disabled={isSubmitting}
               className="accent-blue-600"
             />
             🔗 Link
@@ -104,9 +128,8 @@ export default function PostForm() {
               onChange={() => {
                 setImageMode("file");
                 setPreview("");
-                setForm({ ...form, imageUrl: "" });
+                setForm({ ...form, posterUrl: "" });
               }}
-              disabled={isSubmitting}
               className="accent-blue-600"
             />
             📁 Upload File
@@ -114,48 +137,39 @@ export default function PostForm() {
         </div>
       </div>
 
-      {/* --- Input ảnh --- */}
       {imageMode === "link" ? (
         <input
           type="text"
-          placeholder="Paste image link..."
-          value={form.imageUrl}
+          placeholder="Paste poster link..."
+          value={form.posterUrl}
           onChange={(e) => {
-            setForm({ ...form, imageUrl: e.target.value });
+            setForm({ ...form, posterUrl: e.target.value });
             setPreview(e.target.value);
           }}
           className="border p-2 w-full rounded mb-3"
-          disabled={isSubmitting}
         />
       ) : (
         <input
           type="file"
-          name="imageFile"
+          name="posterFile"
           accept="image/*"
           onChange={handleFileChange}
           className="border p-2 w-full rounded mb-3"
-          disabled={isSubmitting}
         />
       )}
 
-      {/* --- Preview ảnh --- */}
       <img
-        src={preview || "https://placehold.co/600x400?text=No+Image+Available"}
+        src={preview || "https://placehold.co/400x600?text=No+Poster"}
         alt="Preview"
-        className="w-full h-56 object-cover rounded mb-3 border"
+        className="w-full h-64 object-cover rounded mb-3 border"
       />
 
-      {/* --- Submit --- */}
       <button
         type="submit"
         disabled={isSubmitting}
-        className={`px-4 py-2 rounded text-white transition ${
-          isSubmitting
-            ? "bg-gray-400 cursor-not-allowed"
-            : "bg-blue-600 hover:bg-blue-700"
-        }`}
+        className="px-4 py-2 rounded text-white bg-blue-600 hover:bg-blue-700 transition"
       >
-        {isSubmitting ? "Saving..." : "Save"}
+        {isSubmitting ? "Saving..." : "Save Movie"}
       </button>
     </form>
   );
